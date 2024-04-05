@@ -1,5 +1,4 @@
 import express from "express"
-import { add } from "./api.js"
 import { Server } from 'socket.io';
 import { createServer } from 'node:http';
 import { join } from 'node:path';
@@ -13,13 +12,7 @@ const io = new Server(server, {
 const port = 5000
 const __dirname = import.meta.dirname;
 
-app.use(express.static(join(__dirname, 'public')))
-
-// This function might not have a use
-app.post('/api/add', async (req, res) => {
-  await add()
-  res.send("added to docs")
-})
+app.set(express.static(join(__dirname, 'public')))
 
 // Sends the html file -> chat.html
 app.get('/chat/room', (req, res) => {
