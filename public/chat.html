@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Socket.IO chat</title>
+    <style>
+      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+      #input:focus { outline: none; }
+      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages > li { padding: 0.5rem 1rem; }
+      #messages > li:nth-child(odd) { background: #efefef; }
+    </style>
+    <script src="/scripts/dh-key-exchange.js"></script>
+    <script src="/scripts/cesar-cipher.js"></script>
+  </head>
+  <body>
+    <div style="display: fle;" id="navbar">
+      <label id="cipherStateLabel" >cipher on</label>
+      <button onclick="toggleCipher()">toggle cipher</button>
+      <label id="privateKeyLabel">****</label>
+      <button onclick="togglePivateKey()">toggle private Key</button>
+    </div>
+    <ul id="notification"></ul>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+    
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+      // Initialisations
+      const socket = io();
+      const form = document.getElementById('form');
+      const input = document.getElementById('input');
+      const messages = document.getElementById('messages');
+      const cipherStateLabel = document.getElementById('cipherStateLabel')
+      const privateKeyLabel = document.getElementById('privateKeyLabel')
+      const key = new KeyExchange()
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomkey = urlParams.get('roomkey');
+      let cipher = true 
+      let showPrivateKey = false
+
+      // HTML Functions
+      function toggleCipher() {
+        cipher = !cipher
+        cipherStateLabel.innerHTML = cipher ? "cipher on" : "cipher off"  
+        messageState()
+      }
+
+      function togglePivateKey() {
+        showPrivateKey = !showPrivateKey
+        privateKeyLabel.innerHTML = showPrivateKey ? key.privateKey : "****"
+      }
+
+      function messageState() {
+        if(cipher == true && messages.hasChildNodes){
+          // Update messages displayed to Encrypted
+          // Messages = Ifnmp
+          for (let index = 0; index < messages.childElementCount; index++) {
+            const message = messages.childNodes[index];
+            message.innerHTML = caesarCipher(message.innerHTML, key.privateKey)
+          }
+        }
+        else if(cipher == false && messages.hasChildNodes){
+          // Update messages displayed to Decrypted
+          // Messages = Hello
+          for (let index = 0; index < messages.childElementCount; index++) {
+            const message = messages.childNodes[index];
+            message.innerHTML = caesarDecrypt(message.innerHTML, key.privateKey)
+          }
+        }
+      }
+
+      // Event Listener
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (input.value) {
+          var encryptedMsg = caesarCipher(input.value, key.privateKey)
+          socket.emit('chat message', encryptedMsg);
+          input.value = '';
+        }
+      });
+      
+      // Sockets
+      // Initialise room 
+      socket.on("connect", () => {
+        socket.emit("keys", roomkey, (response) => {
+
+          if(response.disconnect == true){
+            // Server to return room details
+            alert("Room is full")
+            window.location.href = "/"
+          }
+
+          if(response.roomSize == 1) {
+            // Wait for a client to join
+            const item = document.createElement('li');
+            item.textContent = "waiting for someone to join"
+            notification.appendChild(item)
+            
+            // prepare for key exchange
+            const [p, g] = key.splitRoomKey(roomkey);
+            key.setPublicKey(p, g)
+          }
+
+          if(response.roomSize == 2) {
+            // Start key exchange process
+            const item = document.createElement('li');
+            item.textContent = "starting key exchange"
+            notification.appendChild(item)
+
+            // Prepared pub key
+            const [p, g] = key.splitRoomKey(roomkey);
+            key.setPublicKey(p, g)
+            
+            // Swap keys
+            socket.emit("key swap server", ({
+              pubKey: key.pubKey, // PubKey to partner
+              response: false
+            }))
+          }
+        }) 
+      })  
+
+      socket.on('user joined', (bool) => {
+        const item = document.createElement('li');
+        item.textContent = "user joined"
+        notification.appendChild(item)
+      })
+
+      socket.on('chat message', (msg) => {
+        const item = document.createElement('li');
+        item.textContent = msg;
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+
+      socket.on('key swap', (keyDetails) => {
+        // Set partner key 
+        // Calculate private key
+        // Send Key swap server back 
+        key.setPartnerPubKey(keyDetails.pubKey)
+        const [p, g] = key.splitRoomKey(roomkey);
+        console.log("key swap:" + JSON.stringify(key))
+        key.generatePrivateKey(g)
+        socket.emit("key swap server", ({
+            pubKey: key.pubKey,
+            response: true,
+            partnerId: keyDetails.partnerId
+          }))
+        console.log(key)
+      })
+
+      socket.on('key swap response', (keyDetails) => {
+        key.setPartnerPubKey(keyDetails.pubKey)
+        console.log("key swap res:" + JSON.stringify(key))
+        const [p, g] = key.splitRoomKey(roomkey);
+        key.generatePrivateKey(g)
+        console.log(key)
+      })
+
+      
+    </script>
+  </body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diffie-Hellman</title>
+</head>
+<body>
+  <h1>This app will teach you how encryption works </h1>
+  <div style="display: flex;">
+    <form onsubmit="joinRoom(event)">
+      <label for="roomKey">Room Key</label>
+      <input type="text" id="roomKey">
+      <button type="submit">Join room</button>
+    </form>
+
+    <form onsubmit="createRoom(event)">
+      <button type="submit">Create Room</button>
+    </form>
+  </div>
+
+  <script>
+    function joinRoom(event) {
+      event.preventDefault();
+      var roomKey = document.getElementById('roomKey').value;
+        window.location.href = '/chat/join/' + roomKey
+    }
+
+    function createRoom(event){
+      event.preventDefault()
+      window.location.href = '/chat'
+    }
+  </script>
+</html>

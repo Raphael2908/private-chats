@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "express": "^4.19.2",
+    "firebase": "^10.9.0",
+    "nodemon": "^3.1.0",
+    "socket.io": "^4.7.5",
+    "typescript": "^5.4.3"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "nodemon app.js"
+  }
+}
