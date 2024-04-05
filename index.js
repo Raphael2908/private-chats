@@ -3,14 +3,16 @@ import { Server } from 'socket.io';
 import { createServer } from 'node:http';
 import { join } from 'node:path';
 import { getTwoRandPrime } from "./prime-generator.js";
+import {fileURLToPath} from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
 const app = express()
 const server = createServer(app);
 const io = new Server(server, {
   connectionStateRecovery: {}
 });
-const port = 5000
-const __dirname = import.meta.dirname;
+const port = 3000
+const __dirname = __filename;
 
 app.set(express.static(join(__dirname, 'public')))
 
