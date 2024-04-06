@@ -11,9 +11,10 @@
       #input:focus { outline: none; }
       #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
 
-      #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages > li { padding: 0.5rem 1rem; }
-      #messages > li:nth-child(odd) { background: #efefef; }
+      /* Common styles for messages and decryptedMessages */
+      .message-list { list-style-type: none; margin: 0; padding: 0; }
+      .message-list > li { padding: 0.5rem 1rem; }
+      .message-list > li:nth-child(odd) { background: #efefef; }
     </style>
     <script src="/scripts/dh-key-exchange.js"></script>
     <script src="/scripts/cesar-cipher.js"></script>
@@ -26,7 +27,8 @@
       <button onclick="togglePivateKey()">toggle private Key</button>
     </div>
     <ul id="notification"></ul>
-    <ul id="messages"></ul>
+    <ul id="messages" class="message-list"></ul>
+    <ul id="decrpytedMessages" class="message-list" style="display: none;"></ul>
     <form id="form" action="">
       <input id="input" autocomplete="off" /><button>Send</button>
     </form>
@@ -39,6 +41,7 @@
       const form = document.getElementById('form');
       const input = document.getElementById('input');
       const messages = document.getElementById('messages');
+      const decrpytedMessages = document.getElementById('decrpytedMessages');
       const cipherStateLabel = document.getElementById('cipherStateLabel')
       const privateKeyLabel = document.getElementById('privateKeyLabel')
       const key = new KeyExchange()
@@ -51,31 +54,19 @@
       function toggleCipher() {
         cipher = !cipher
         cipherStateLabel.innerHTML = cipher ? "cipher on" : "cipher off"  
-        messageState()
+        if(cipher){
+          decrpytedMessages.style.display = "none"
+          messages.style.display = "inline"
+        }
+        else{
+          decrpytedMessages.style.display = "inline"
+          messages.style.display = "none"
+        }
       }
 
       function togglePivateKey() {
         showPrivateKey = !showPrivateKey
         privateKeyLabel.innerHTML = showPrivateKey ? key.privateKey : "****"
-      }
-
-      function messageState() {
-        if(cipher == true && messages.hasChildNodes){
-          // Update messages displayed to Encrypted
-          // Messages = Ifnmp
-          for (let index = 0; index < messages.childElementCount; index++) {
-            const message = messages.childNodes[index];
-            message.innerHTML = caesarCipher(message.innerHTML, key.privateKey)
-          }
-        }
-        else if(cipher == false && messages.hasChildNodes){
-          // Update messages displayed to Decrypted
-          // Messages = Hello
-          for (let index = 0; index < messages.childElementCount; index++) {
-            const message = messages.childNodes[index];
-            message.innerHTML = caesarDecrypt(message.innerHTML, key.privateKey)
-          }
-        }
       }
 
       // Event Listener
@@ -137,8 +128,11 @@
 
       socket.on('chat message', (msg) => {
         const item = document.createElement('li');
+        const decrpytedItem = item.cloneNode(true);
         item.textContent = msg;
+        decrpytedItem.textContent = caesarDecrypt(msg, key.privateKey)
         messages.appendChild(item);
+        decrpytedMessages.appendChild(decrpytedItem)
         window.scrollTo(0, document.body.scrollHeight);
       });
 
@@ -165,8 +159,6 @@
         key.generatePrivateKey(g)
         console.log(key)
       })
-
-      
     </script>
   </body>
 </html>

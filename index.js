@@ -3,18 +3,21 @@ import { Server } from 'socket.io';
 import { createServer } from 'node:http';
 import { join } from 'node:path';
 import { getTwoRandPrime } from "./prime-generator.js";
-import {fileURLToPath} from 'url';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
+const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+const __dirname = path.dirname(__filename); // get the name of the directory
+
 const app = express()
 const server = createServer(app);
 const io = new Server(server, {
   connectionStateRecovery: {}
 });
-const port = 3000
-const __dirname = __filename;
 
-app.set(express.static(join(__dirname, 'public')))
+const port = 3000
+
+app.use(express.static(join(__dirname, 'public')))
 
 // Sends the html file -> chat.html
 app.get('/chat/room', (req, res) => {
@@ -45,7 +48,6 @@ io.on('connection', (socket) => {
     const room = rooms.get(keys)
 
     socket.on('chat message', (msg)=> {
-      console.log(msg)
       io.to(keys).emit('chat message', msg);
     })
 
