@@ -35,6 +35,8 @@
           <p id="public-key">Public key: </p>
           <p id="partner-public-key">Partner's public key: </p>
           <p id="private-key">Private key: </p>
+          <label for="">cipher string: </label>
+          <p>abcdefghijklmnopqrstuvwxyz0123456789</p>
         </div>
       </div>
       <!-- chat -->
@@ -121,6 +123,8 @@
             // Wait for a client to join
             const item = document.createElement('li');
             item.textContent = "waiting for someone to join"
+            const decrpytedItem = item.cloneNode(true);
+            decrpytedMessages.appendChild(decrpytedItem)
             messages.appendChild(item)
             
             // prepare for key exchange
@@ -131,6 +135,8 @@
             // Start key exchange process
             const item = document.createElement('li');
             item.textContent = "starting key exchange"
+            const decrpytedItem = item.cloneNode(true);
+            decrpytedMessages.appendChild(decrpytedItem)
             messages.appendChild(item)
 
             // Prepared pub key
@@ -148,6 +154,8 @@
       socket.on('user joined', (bool) => {
         const item = document.createElement('li');
         item.textContent = "user joined"
+        const decrpytedItem = item.cloneNode(true);
+        decrpytedMessages.appendChild(decrpytedItem)
         messages.appendChild(item)
       })
 
