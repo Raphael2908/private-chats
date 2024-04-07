@@ -1,37 +1,51 @@
 <!DOCTYPE html>
-<html>
+<html style="height: 100%;">
   <head>
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Socket.IO chat</title>
     <style>
-      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 
-      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: absolute; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
       #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
       #input:focus { outline: none; }
       #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
 
       /* Common styles for messages and decryptedMessages */
-      .message-list { list-style-type: none; margin: 0; padding: 0; }
+      .message-list { list-style-type: none; margin: 0; padding: 0; overflow-y: scroll;}
       .message-list > li { padding: 0.5rem 1rem; }
       .message-list > li:nth-child(odd) { background: #efefef; }
     </style>
     <script src="/scripts/dh-key-exchange.js"></script>
     <script src="/scripts/cesar-cipher.js"></script>
   </head>
-  <body>
-    <div style="display: fle;" id="navbar">
-      <label id="cipherStateLabel" >cipher on</label>
-      <button onclick="toggleCipher()">toggle cipher</button>
-      <label id="privateKeyLabel">****</label>
-      <button onclick="togglePivateKey()">toggle private Key</button>
+  <body style="height: 100%;">
+    <div style="display: flex; height: 100%;">
+      <!-- side bar -->
+      <div style="flex-shrink: 1;">
+            <!-- Buttons -->
+        <div style="display: flex;" id="navbar">
+          <label id="cipherStateLabel" >cipher on</label>
+          <button onclick="toggleCipher()">toggle cipher</button>
+          <button onclick="toggleCalculations()">toggle calculations</button>
+        </div>
+        <div id="calculations">
+          <h1>calculations</h1>
+          <p id="favourite-number">Favourite number: </p>
+          <p id="public-key">Public key: </p>
+          <p id="partner-public-key">Partner's public key: </p>
+          <p id="private-key">Private key: </p>
+        </div>
+      </div>
+      <!-- chat -->
+      <div style="flex-grow: 2; position: relative; height: 100%; display: flex; flex-direction: column;">
+        <ul id="messages" class="message-list"></ul>
+        <ul id="decrpytedMessages" class="message-list" style="display: none;"></ul>
+        <form id="form" action="">
+          <input id="input" autocomplete="off" /><button>Send</button>
+        </form>
+      </div>
     </div>
-    <ul id="notification"></ul>
-    <ul id="messages" class="message-list"></ul>
-    <ul id="decrpytedMessages" class="message-list" style="display: none;"></ul>
-    <form id="form" action="">
-      <input id="input" autocomplete="off" /><button>Send</button>
-    </form>
     
     <script src="/socket.io/socket.io.js"></script>
 
@@ -40,16 +54,22 @@
       const socket = io();
       const form = document.getElementById('form');
       const input = document.getElementById('input');
+      const calculations = document.getElementById('calculations')
       const messages = document.getElementById('messages');
+      const favouritenNumber = document.getElementById('favourite-number')
+      const publicKey = document.getElementById('public-key')
+      const partnerPublicKey = document.getElementById('partner-public-key')
+      const privateKey = document.getElementById('private-key')
       const decrpytedMessages = document.getElementById('decrpytedMessages');
       const cipherStateLabel = document.getElementById('cipherStateLabel')
-      const privateKeyLabel = document.getElementById('privateKeyLabel')
       const key = new KeyExchange()
       const urlParams = new URLSearchParams(window.location.search);
       const roomkey = urlParams.get('roomkey');
+      const [p, g] = key.splitRoomKey(roomkey);
       let cipher = true 
-      let showPrivateKey = false
+      let showCalculations = false 
 
+      
       // HTML Functions
       function toggleCipher() {
         cipher = !cipher
@@ -64,9 +84,16 @@
         }
       }
 
-      function togglePivateKey() {
-        showPrivateKey = !showPrivateKey
-        privateKeyLabel.innerHTML = showPrivateKey ? key.privateKey : "****"
+      function InitialiseCalculations() {
+        favouritenNumber.innerText = `Favourite number: ${key.favouriteNum}`
+        publicKey.innerText = `Public Key: ${Number(p)}^${key.favouriteNum} % ${g} = ${key.pubKey}`  
+        partnerPublicKey.innerText = `Partner's Public Key: ${key.partnerPubKey}`  
+        privateKey.innerText = `Private Key: ${key.privateKey}^${key.favouriteNum} = ${g}`  
+      }
+
+      function toggleCalculations() {
+        showCalculations = !showCalculations
+        calculations.style.display = showCalculations ? "none" : "inline"
       }
 
       // Event Listener
@@ -94,10 +121,9 @@
             // Wait for a client to join
             const item = document.createElement('li');
             item.textContent = "waiting for someone to join"
-            notification.appendChild(item)
+            messages.appendChild(item)
             
             // prepare for key exchange
-            const [p, g] = key.splitRoomKey(roomkey);
             key.setPublicKey(p, g)
           }
 
@@ -105,10 +131,9 @@
             // Start key exchange process
             const item = document.createElement('li');
             item.textContent = "starting key exchange"
-            notification.appendChild(item)
+            messages.appendChild(item)
 
             // Prepared pub key
-            const [p, g] = key.splitRoomKey(roomkey);
             key.setPublicKey(p, g)
             
             // Swap keys
@@ -123,7 +148,7 @@
       socket.on('user joined', (bool) => {
         const item = document.createElement('li');
         item.textContent = "user joined"
-        notification.appendChild(item)
+        messages.appendChild(item)
       })
 
       socket.on('chat message', (msg) => {
@@ -145,18 +170,19 @@
         console.log("key swap:" + JSON.stringify(key))
         key.generatePrivateKey(g)
         socket.emit("key swap server", ({
-            pubKey: key.pubKey,
-            response: true,
-            partnerId: keyDetails.partnerId
-          }))
+          pubKey: key.pubKey,
+          response: true,
+          partnerId: keyDetails.partnerId
+        }))
+        InitialiseCalculations()
         console.log(key)
       })
 
       socket.on('key swap response', (keyDetails) => {
         key.setPartnerPubKey(keyDetails.pubKey)
         console.log("key swap res:" + JSON.stringify(key))
-        const [p, g] = key.splitRoomKey(roomkey);
         key.generatePrivateKey(g)
+        InitialiseCalculations()
         console.log(key)
       })
     </script>
