@@ -48,6 +48,7 @@ io.on('connection', (socket) => {
     const room = rooms.get(keys)
 
     socket.on('chat message', (msg)=> {
+      console.log(msg)
       io.to(keys).emit('chat message', msg);
     })
 

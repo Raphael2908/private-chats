@@ -9,7 +9,7 @@ class KeyExchange {
     }
 
     /**
-     * Generate a randmom number from 1-100
+     * Generate a random number from 1-100
      */
     randomFavouriteNum(){
         // Generates the private key for the frontend
@@ -23,7 +23,7 @@ class KeyExchange {
      */
     splitRoomKey(roomKey){
         if(roomKey.length != 4){
-            throw new Error("Room key has to have 4 numbers E.g: 0314")
+            throw new Error("Room key has to have 4 numbers E.g: 0317")
         }
         if (typeof(roomKey) == String) {
             roomKey = roomKey.toString()
